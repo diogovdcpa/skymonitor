@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Flow"
+  short_description: "Fluxo Git enxuto para times pequenos."
+  default_prompt: "Use $git-flow para padronizar branches, PRs, commits e rebase no repositório atual."
