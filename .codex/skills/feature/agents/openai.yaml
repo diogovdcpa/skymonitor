@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature"
+  short_description: "Cria specs numeradas de feature com ate 5 fases"
+  default_prompt: "Use $feature para ler a codebase e criar docs/features/NN-slug/spec.md com template padrao."
