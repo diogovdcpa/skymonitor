@@ -33,6 +33,31 @@ No PR:
 3. Revisar de forma objetiva (bug óbvio, regressão, legibilidade).
 4. Compartilhar aprendizado técnico quando houver simplificação relevante.
 
+## Descrição de PR
+
+Sempre gerar uma descrição de PR pronta para colar, baseada no diff/commits da branch.
+
+Usar o template:
+
+```md
+## Contexto
+[problema, objetivo e escopo]
+
+## Mudanças
+- [alteração 1]
+- [alteração 2]
+
+## Como validar
+1. [passo de validação]
+2. [passo de validação]
+
+## Checklist
+- [x] Sem push direto na `main`
+- [x] Commits atômicos
+- [x] Rebase com `main` concluído
+- [x] CI verde
+```
+
 ## Padrão de Commits
 
 Criar commits atômicos: uma intenção lógica por commit.
@@ -97,5 +122,6 @@ Antes de mergear:
 2. Garantir commits atômicos e mensagens claras.
 3. Verificar rebase com `main` concluído.
 4. Confirmar PR com contexto suficiente.
-5. Confirmar CI verde.
-6. Atualizar `README.md` e `CONTRIBUTING.md` se processo mudou.
+5. Confirmar descrição de PR gerada no template padrão.
+6. Confirmar CI verde.
+7. Atualizar `README.md` e `CONTRIBUTING.md` se processo mudou.
