@@ -1,6 +1,11 @@
 ---
 name: documenta
-description: Criar documentacao tecnica em Markdown a partir de um arquivo-base enviado pelo usuario, organizando o conteudo em secoes menores e mantendo um documento principal consolidado em `docs/referencias/<nome>/index.md`. Use quando o usuario pedir para transformar manuais, guias, politicas, configuracoes ou qualquer referencia em docs `.md` estruturadas por topico, com pasta dedicada por nome principal (ex.: `fortinet`).
+description: >-
+  Criar documentacao tecnica em Markdown a partir de um arquivo-base enviado pelo usuario,
+  organizando o conteudo em secoes menores e mantendo um documento principal consolidado em
+  `docs/referencias/<nome>/index.md`. Use quando o usuario pedir para transformar manuais, guias,
+  politicas, configuracoes ou qualquer referencia em docs `.md` estruturadas por topico, com pasta
+  dedicada por nome principal (ex.: `fortinet`).
 ---
 
 # Documenta
