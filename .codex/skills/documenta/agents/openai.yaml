@@ -1,0 +1,4 @@
+interface:
+  display_name: "Documenta"
+  short_description: "Gera documentacao Markdown por secoes a partir de arquivos"
+  default_prompt: "Use $documenta para transformar arquivos enviados em docs/referencias/<nome>/index.md e secoes importadas."
