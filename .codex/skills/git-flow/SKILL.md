@@ -1,6 +1,6 @@
 ---
 name: git-flow
-description: Padroniza o fluxo de GitHub Flow para times pequenos, com criação de branches de feature/fix, commits atômicos com Conventional Commits, PR leve com revisão rápida, atualização via rebase e automação mínima de qualidade. Use quando o usuário pedir organização de branches, estratégia de merge/rebase, boas práticas de PR, mensagens de commit e setup de CI básico em repositórios Git.
+description: Padroniza o fluxo de GitHub Flow para times pequenos, com criação de branches de feature/fix, commits atômicos com Conventional Commits, PR leve com revisão rápida, atualização via rebase, limpeza de branch local ao final e templates prontos para copiar e colar. Use quando o usuário pedir organização de branches, estratégia de merge/rebase, boas práticas de PR, mensagens de commit e setup de CI básico em repositórios Git.
 ---
 
 # GitHub Flow Para Times Pequenos
@@ -43,6 +43,10 @@ Priorizar produtividade com pouca burocracia em equipes pequenas.
 7. Validar com automação:
 - Rodar lint, format e testes no PR (CI).
 
+8. Encerrar tarefa com limpeza local:
+- Após merge, atualizar `main` local.
+- Apagar a branch local da tarefa com segurança (`git branch -d <branch>`).
+
 ## Decisões Operacionais
 
 - Preferir `rebase` para manter histórico linear.
@@ -66,7 +70,9 @@ Consultar [`references/comandos-e-checklists.md`](references/comandos-e-checklis
 - comandos recomendados;
 - checklist de início de branch;
 - checklist antes do PR;
-- checklist de revisão.
+- checklist de revisão;
+- checklist de encerramento;
+- templates prontos para copiar e colar.
 
 ## Automação Mínima Recomendada
 
