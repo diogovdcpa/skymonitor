@@ -28,17 +28,22 @@ test -n "$VIRTUAL_ENV" || { echo "Erro: ative um ambiente virtual antes de execu
 4. Executar testes (`pytest -q`).
 5. Finalizar somente com testes passando.
 
-## Analise da codebase (2026-03-06)
+## Analise da codebase (2026-03-09)
 
 Estado atual do repositorio:
 
-- O projeto esta majoritariamente estruturado como documentacao tecnica em Markdown.
-- Nao ha, neste momento, estrutura Python de aplicacao pronta para execucao (`pyproject.toml`, `requirements*.txt` e pasta `tests/` nao encontrados na raiz).
-- Existe script Python utilitario no ecossistema de skills local.
+- O projeto possui um CLI Python funcional na raiz (`app.py`) para autenticacao e consulta de incidentes na API Skyhigh.
+- A raiz ja contem artefatos basicos de execucao Python (`requirements.txt` e `.env.example`), embora ainda nao exista empacotamento com `pyproject.toml`.
+- O repositorio continua fortemente orientado a documentacao tecnica em Markdown e referencias operacionais.
+- Ainda nao existe pasta `tests/` na raiz; novas evolucoes de codigo devem corrigir essa lacuna seguindo TDD.
+- Existem scripts utilitarios adicionais no ecossistema de skills local.
 
 Arquivos e pontos principais:
 
 - [README.md](README.md)
+- [app.py](app.py)
+- [requirements.txt](requirements.txt)
+- [.env.example](.env.example)
 - [docs/referencias/skyhigh/index.md](docs/referencias/skyhigh/index.md)
 - [docs/referencias/skyhigh/06-troubleshooting-e-boas-praticas.md](docs/referencias/skyhigh/06-troubleshooting-e-boas-praticas.md)
 - [docs/features/01-correcao-de-yaml-no-skill-documenta/spec.md](docs/features/01-correcao-de-yaml-no-skill-documenta/spec.md)

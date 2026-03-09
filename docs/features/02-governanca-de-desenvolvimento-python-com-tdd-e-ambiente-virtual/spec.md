@@ -16,13 +16,16 @@ Criar um `AGENTS.md` de governanca tecnica para padronizar a evolucao do projeto
   - `AGENTS.md` (novo arquivo de diretrizes de engenharia)
   - `docs/features/02-governanca-de-desenvolvimento-python-com-tdd-e-ambiente-virtual/spec.md`
   - `README.md` e `docs/referencias/skyhigh/*.md` como referencias de contexto
-  - `.codex/skills/documenta/scripts/create_reference_docs.py` (unico script Python encontrado no repositorio)
+  - `app.py` (CLI Python principal do repositorio)
+  - `.env.example` e `requirements.txt` (artefatos de execucao/configuracao ja presentes na raiz)
+  - `.codex/skills/documenta/scripts/create_reference_docs.py` (script Python utilitario no ecossistema de skills)
 - Dependencias tecnicas:
   - Fluxo de desenvolvimento em Python com `venv`
   - Execucao de testes via `pytest` como criterio de conclusao
   - Documentacao Markdown como meio de governanca
 - Riscos e restricoes:
-  - O repositorio ainda nao possui estrutura Python de aplicacao na raiz (`pyproject.toml`, `requirements*.txt` e `tests/` ausentes)
+  - A governanca definida em `AGENTS.md` esta mais madura que a estrutura atual de testes: ainda nao existe pasta `tests/` na raiz
+  - O repositorio ainda nao possui empacotamento Python com `pyproject.toml`
   - Regras documentadas dependem de adesao operacional ate que haja automacao de enforcement (CI/hooks)
 
 ## 3. Referencias externas (opcional, recomendado)
@@ -94,3 +97,4 @@ Atualizar durante a execucao:
 - 2026-03-06 - Analise da codebase concluida com mapeamento de arquivos e lacunas para stack Python.
 - 2026-03-06 - `AGENTS.md` criado com politicas de Python, TDD obrigatorio, testes como criterio de conclusao e uso exclusivo de ambiente virtual.
 - 2026-03-06 - Fases 1 a 3 marcadas como concluidas e status geral atualizado para `concluida`.
+- 2026-03-09 - Contexto da codebase revisado para refletir a existencia de `app.py`, `.env.example` e `requirements.txt` na raiz.
