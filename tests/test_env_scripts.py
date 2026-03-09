@@ -4,7 +4,6 @@ import os
 import subprocess
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -67,9 +66,44 @@ def test_test_script_requires_active_virtual_env() -> None:
 
 def test_test_script_runs_pytest_quiet_mode() -> None:
     result = run_shell(
-        "bash env-script/test.sh tests/test_env_scripts.py -k test_start_script_requires_source_invocation",
+        (
+            "bash env-script/test.sh tests/test_env_scripts.py "
+            "-k test_start_script_requires_source_invocation"
+        ),
         activate_venv=True,
     )
 
     assert result.returncode == 0
-    assert "passed" in result.stdout
+    assert "[100%]" in result.stdout
+    assert "collected " not in result.stdout
+
+
+def test_lint_script_requires_active_virtual_env() -> None:
+    result = run_shell("unset VIRTUAL_ENV\nbash env-script/lint.sh")
+
+    assert result.returncode != 0
+    assert "Erro: ative um ambiente virtual antes de executar comandos." in result.stdout
+
+
+def test_lint_script_runs_ruff_check() -> None:
+    result = run_shell("bash env-script/lint.sh tests/test_env_scripts.py", activate_venv=True)
+
+    assert result.returncode == 0
+    assert "All checks passed!" in result.stdout
+
+
+def test_typecheck_script_requires_active_virtual_env() -> None:
+    result = run_shell("unset VIRTUAL_ENV\nbash env-script/typecheck.sh")
+
+    assert result.returncode != 0
+    assert "Erro: ative um ambiente virtual antes de executar comandos." in result.stdout
+
+
+def test_typecheck_script_runs_mypy() -> None:
+    result = run_shell(
+        "bash env-script/typecheck.sh skymonitor/config.py skymonitor/types.py",
+        activate_venv=True,
+    )
+
+    assert result.returncode == 0
+    assert "Success: no issues found" in result.stdout
