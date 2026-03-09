@@ -1,3 +1,5 @@
 # SkyMonitor runtime uses only Python standard library modules.
 # Development and test workflow currently depends on pytest.
 pytest==9.0.2
+ruff==0.13.0
+mypy==1.18.1

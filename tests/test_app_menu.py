@@ -6,18 +6,19 @@ from datetime import datetime
 import pytest
 
 import app
+from skymonitor import cli as cli_module
 
 
 def test_build_start_time_for_days_uses_current_day_midnight() -> None:
     now = datetime(2026, 3, 9, 15, 47, 12)
 
-    assert app.build_start_time_for_days(1, now=now) == "2026-03-09T00:00:00.000"
+    assert app.build_start_time_for_days(1, now=now) == "2026-03-09T00:00:00.000Z"
 
 
 def test_build_start_time_for_days_supports_multiple_days() -> None:
     now = datetime(2026, 3, 9, 15, 47, 12)
 
-    assert app.build_start_time_for_days(3, now=now) == "2026-03-07T00:00:00.000"
+    assert app.build_start_time_for_days(3, now=now) == "2026-03-07T00:00:00.000Z"
 
 
 def test_build_start_time_for_days_requires_positive_value() -> None:
@@ -55,6 +56,27 @@ def test_parse_args_accepts_menu_flag() -> None:
     assert args.menu is True
 
 
+def test_format_incident_line_includes_main_fields() -> None:
+    line = app._format_incident_line(
+        {
+            "incidentId": "DLP-99",
+            "incidentRiskSeverity": "HIGH",
+            "status": "new",
+            "actorId": "user@example.com",
+            "information": {
+                "contentItemName": "arquivo.xlsx",
+                "policyName": "Regra Exchange",
+            },
+        }
+    )
+
+    assert "DLP-99" in line
+    assert "severity=HIGH" in line
+    assert "actor=user@example.com" in line
+    assert "arquivo=arquivo.xlsx" in line
+    assert "policy=Regra Exchange" in line
+
+
 def test_run_menu_executes_all_incidents_option_with_default_day() -> None:
     captured: list[tuple[str, list[dict[str, str]]]] = []
     outputs: list[str] = []
@@ -72,7 +94,7 @@ def test_run_menu_executes_all_incidents_option_with_default_day() -> None:
     )
 
     assert result == 0
-    assert captured == [("all", "2026-03-09T00:00:00.000")]
+    assert captured == [("all", "2026-03-09T00:00:00.000Z")]
     assert any("SkyhighMonitor" in line for line in outputs)
     assert any("Total de incidentes retornados: 1" in line for line in outputs)
 
@@ -94,7 +116,7 @@ def test_run_menu_executes_exchange_option_with_custom_days() -> None:
     )
 
     assert result == 0
-    assert captured == [("exchange_new", "2026-03-07T00:00:00.000")]
+    assert captured == [("exchange_new", "2026-03-07T00:00:00.000Z")]
     assert any("Total de incidentes retornados: 1" in line for line in outputs)
 
 
@@ -115,7 +137,7 @@ def test_run_menu_reprompts_for_invalid_days() -> None:
     )
 
     assert result == 0
-    assert captured == [("all", "2026-03-08T00:00:00.000")]
+    assert captured == [("all", "2026-03-08T00:00:00.000Z")]
     assert any("Informe um numero inteiro maior ou igual a 1." in line for line in outputs)
 
 
@@ -136,17 +158,33 @@ def test_execute_menu_query_filters_exchange_new(monkeypatch: pytest.MonkeyPatch
         menu=True,
     )
 
-    monkeypatch.setattr(app, "try_resolve_connection", lambda **_: {"base_url": "https://unit.test", "incidents_path": "/incidents", "token": None})
     monkeypatch.setattr(
-        app,
+        cli_module,
+        "try_resolve_connection",
+        lambda **_: {
+            "base_url": "https://unit.test",
+            "incidents_path": "/incidents",
+            "token": None,
+        },
+    )
+    monkeypatch.setattr(
+        cli_module,
         "fetch_all_incidents",
         lambda **_: [
-            {"incidentId": "DLP-1", "status": "new", "serviceNames": ["Microsoft Exchange Online"]},
-            {"incidentId": "DLP-2", "status": "suppressed", "serviceNames": ["Microsoft Exchange Online"]},
+            {
+                "incidentId": "DLP-1",
+                "status": "new",
+                "serviceNames": ["Microsoft Exchange Online"],
+            },
+            {
+                "incidentId": "DLP-2",
+                "status": "suppressed",
+                "serviceNames": ["Microsoft Exchange Online"],
+            },
         ],
     )
 
-    incidents = app.execute_menu_query(args, "exchange_new", "2026-03-09T00:00:00.000")
+    incidents = app.execute_menu_query(args, "exchange_new", "2026-03-09T00:00:00.000Z")
 
     assert incidents == [
         {"incidentId": "DLP-1", "status": "new", "serviceNames": ["Microsoft Exchange Online"]}
