@@ -4,7 +4,8 @@ import base64
 import json
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional, Sequence
 from urllib import parse
 from urllib import error, request
 
@@ -254,7 +255,7 @@ def parse_base_candidates(args_base_url: Optional[str]) -> List[str]:
     return DEFAULT_BASE_URLS[:]
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Busca incidentes da Skyhigh com autenticacao por e-mail/senha."
     )
@@ -305,7 +306,12 @@ def parse_args() -> argparse.Namespace:
         default=os.getenv("SKY_AUTH_MODE", "basic-only"),
         help="Modo de autenticacao",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--menu",
+        action="store_true",
+        help="Abre um menu interativo com consultas predefinidas.",
+    )
+    return parser.parse_args(argv)
 
 
 def _require_arg(value: Optional[str], name: str) -> str:
@@ -322,6 +328,198 @@ def _dedupe(values: List[str]) -> List[str]:
             seen.add(value)
             out.append(value)
     return out
+
+
+def build_start_time_for_days(days: int, now: Optional[datetime] = None) -> str:
+    if days < 1:
+        raise ValueError("A quantidade de dias deve ser maior ou igual a 1.")
+
+    current = now or datetime.now()
+    start_of_today = current.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_time = start_of_today - timedelta(days=days - 1)
+    return start_time.strftime("%Y-%m-%dT%H:%M:%S.000")
+
+
+def filter_new_exchange_online_incidents(
+    incidents: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    filtered: List[Dict[str, Any]] = []
+    for item in incidents:
+        services = item.get("serviceNames")
+        if item.get("status") != "new":
+            continue
+        if not isinstance(services, list):
+            continue
+        if "Microsoft Exchange Online" not in services:
+            continue
+        filtered.append(item)
+    return filtered
+
+
+def _parse_incident_criteria(raw_json: str) -> Optional[Dict[str, Any]]:
+    if not raw_json:
+        return None
+
+    parsed = json.loads(raw_json)
+    if not isinstance(parsed, dict):
+        raise RuntimeError("--incident-criteria-json deve ser um objeto JSON.")
+    return parsed
+
+
+def _build_auth_paths(args: argparse.Namespace) -> List[str]:
+    return _dedupe(
+        [
+            args.auth_path or "",
+            os.getenv("SKY_AUTH_PATH", ""),
+            "/auth/login",
+        ]
+    )
+
+
+def _build_incidents_paths(args: argparse.Namespace) -> List[str]:
+    return _dedupe(
+        [
+            args.incidents_path or "",
+            os.getenv("SKY_INCIDENTS_PATH", ""),
+            "/shnapi/rest/external/api/v1/queryIncidents",
+            "/incidents",
+        ]
+    )
+
+
+def execute_incident_query(
+    args: argparse.Namespace,
+    start_time: str,
+    incident_criteria: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    email = _require_arg(args.email, "--email ou SKY_EMAIL")
+    password = _require_arg(args.password, "--password ou SKY_PASSWORD")
+    if args.auth_mode == "iam-tenant" and not args.tenant_id:
+        raise RuntimeError("Informe --tenant-id ou SKY_TENANT_ID para auth-mode iam-tenant.")
+
+    resolved = try_resolve_connection(
+        base_candidates=parse_base_candidates(args.base_url),
+        auth_paths=_build_auth_paths(args),
+        incidents_paths=_build_incidents_paths(args),
+        email=email,
+        password=password,
+        auth_mode=args.auth_mode,
+        page_size=args.page_size,
+        start_time=start_time,
+        incident_criteria=incident_criteria,
+        tenant_id=args.tenant_id,
+    )
+
+    incidents = fetch_all_incidents(
+        base_url=resolved["base_url"],
+        incidents_path=resolved["incidents_path"],
+        page_size=args.page_size,
+        max_pages=args.max_pages,
+        start_time=start_time,
+        incident_criteria=incident_criteria,
+        token=resolved.get("token") if args.auth_mode != "basic-only" else None,
+        email=email,
+        password=password,
+    )
+
+    print(f"Base escolhida: {resolved['base_url']}", file=sys.stderr)
+    print(f"Endpoint de incidentes: {resolved['incidents_path']}", file=sys.stderr)
+    print(f"Total de incidentes: {len(incidents)}", file=sys.stderr)
+    return incidents
+
+
+def execute_menu_query(
+    args: argparse.Namespace,
+    mode: str,
+    start_time: str,
+) -> List[Dict[str, Any]]:
+    incidents = execute_incident_query(args, start_time=start_time, incident_criteria=None)
+    if mode == "exchange_new":
+        return filter_new_exchange_online_incidents(incidents)
+    return incidents
+
+
+def _prompt_days(
+    input_func: Callable[[str], str],
+    output_func: Callable[[str], None],
+) -> int:
+    while True:
+        raw = input_func("Quantidade de dias [1]: ").strip()
+        if not raw:
+            return 1
+        try:
+            return int(raw) if int(raw) >= 1 else -1
+        except ValueError:
+            output_func("Informe um numero inteiro maior ou igual a 1.")
+            continue
+
+        output_func("Informe um numero inteiro maior ou igual a 1.")
+
+
+def _format_incident_line(incident: Dict[str, Any]) -> str:
+    info = incident.get("information")
+    item_name = ""
+    policy_name = ""
+    if isinstance(info, dict):
+        item_name = str(info.get("contentItemName", ""))
+        policy_name = str(info.get("policyName", ""))
+
+    incident_id = incident.get("incidentId", "")
+    severity = incident.get("incidentRiskSeverity", "")
+    status = incident.get("status", "")
+    actor = incident.get("actorId", "")
+    return (
+        f"{incident_id} | severity={severity} | status={status} | "
+        f"actor={actor} | arquivo={item_name} | policy={policy_name}"
+    )
+
+
+def run_interactive_menu(
+    args: Optional[argparse.Namespace] = None,
+    input_func: Callable[[str], str] = input,
+    output_func: Callable[[str], None] = print,
+    execute_query: Optional[Callable[[str, str], List[Dict[str, Any]]]] = None,
+    now: Optional[datetime] = None,
+) -> int:
+    runtime_args = args or parse_args([])
+    query_executor = execute_query or (
+        lambda mode, start_time: execute_menu_query(runtime_args, mode, start_time)
+    )
+
+    output_func("========================================")
+    output_func("            SkyhighMonitor")
+    output_func("========================================")
+
+    while True:
+        output_func("")
+        output_func("1. Trazer todos os incidentes")
+        output_func("2. Trazer incidentes new de Microsoft Exchange Online")
+        output_func("0. Sair")
+
+        choice = input_func("Escolha uma opcao: ").strip()
+        if choice == "0":
+            output_func("Encerrando menu.")
+            return 0
+
+        if choice not in {"1", "2"}:
+            output_func("Opcao invalida. Escolha 1, 2 ou 0.")
+            continue
+
+        days = _prompt_days(input_func, output_func)
+        if days < 1:
+            output_func("Informe um numero inteiro maior ou igual a 1.")
+            continue
+
+        start_time = build_start_time_for_days(days, now=now)
+        mode = "all" if choice == "1" else "exchange_new"
+        incidents = query_executor(mode, start_time)
+
+        output_func(f"Janela consultada desde: {start_time}")
+        output_func(f"Total de incidentes retornados: {len(incidents)}")
+        for incident in incidents[:10]:
+            output_func(_format_incident_line(incident))
+        if len(incidents) > 10:
+            output_func("Exibindo somente os 10 primeiros incidentes.")
 
 
 def try_resolve_connection(
@@ -393,72 +591,30 @@ def try_resolve_connection(
     raise RuntimeError("Nenhuma combinacao base/auth funcionou.\n" + "\n".join(errors))
 
 
+def run_standard_cli(args: argparse.Namespace) -> int:
+    incident_criteria = _parse_incident_criteria(args.incident_criteria_json)
+    incidents = execute_incident_query(
+        args,
+        start_time=args.start_time,
+        incident_criteria=incident_criteria,
+    )
+
+    if args.pretty:
+        print(json.dumps(incidents, ensure_ascii=False, indent=2))
+    else:
+        print(json.dumps(incidents, ensure_ascii=False))
+
+    return 0
+
+
 def main() -> int:
     load_dotenv()
     args = parse_args()
 
     try:
-        email = _require_arg(args.email, "--email ou SKY_EMAIL")
-        password = _require_arg(args.password, "--password ou SKY_PASSWORD")
-        if args.auth_mode == "iam-tenant" and not args.tenant_id:
-            raise RuntimeError("Informe --tenant-id ou SKY_TENANT_ID para auth-mode iam-tenant.")
-        bases = parse_base_candidates(args.base_url)
-        incident_criteria: Optional[Dict[str, Any]] = None
-        if args.incident_criteria_json:
-            parsed = json.loads(args.incident_criteria_json)
-            if not isinstance(parsed, dict):
-                raise RuntimeError("--incident-criteria-json deve ser um objeto JSON.")
-            incident_criteria = parsed
-        auth_paths = _dedupe(
-            [
-                args.auth_path or "",
-                os.getenv("SKY_AUTH_PATH", ""),
-                "/auth/login",
-            ]
-        )
-        incidents_paths = _dedupe(
-            [
-                args.incidents_path or "",
-                os.getenv("SKY_INCIDENTS_PATH", ""),
-                "/shnapi/rest/external/api/v1/queryIncidents",
-                "/incidents",
-            ]
-        )
-
-        resolved = try_resolve_connection(
-            base_candidates=bases,
-            auth_paths=auth_paths,
-            incidents_paths=incidents_paths,
-            email=email,
-            password=password,
-            auth_mode=args.auth_mode,
-            page_size=args.page_size,
-            start_time=args.start_time,
-            incident_criteria=incident_criteria,
-            tenant_id=args.tenant_id,
-        )
-
-        incidents = fetch_all_incidents(
-            base_url=resolved["base_url"],
-            incidents_path=resolved["incidents_path"],
-            page_size=args.page_size,
-            max_pages=args.max_pages,
-            start_time=args.start_time,
-            incident_criteria=incident_criteria,
-            token=resolved.get("token") if args.auth_mode != "basic-only" else None,
-            email=email,
-            password=password,
-        )
-
-        if args.pretty:
-            print(json.dumps(incidents, ensure_ascii=False, indent=2))
-        else:
-            print(json.dumps(incidents, ensure_ascii=False))
-
-        print(f"Base escolhida: {resolved['base_url']}", file=sys.stderr)
-        print(f"Endpoint de incidentes: {resolved['incidents_path']}", file=sys.stderr)
-        print(f"Total de incidentes: {len(incidents)}", file=sys.stderr)
-        return 0
+        if args.menu:
+            return run_interactive_menu(args=args)
+        return run_standard_cli(args)
     except Exception as exc:
         print(f"Erro: {exc}", file=sys.stderr)
         return 1
