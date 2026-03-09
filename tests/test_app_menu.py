@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -189,3 +191,65 @@ def test_execute_menu_query_filters_exchange_new(monkeypatch: pytest.MonkeyPatch
     assert incidents == [
         {"incidentId": "DLP-1", "status": "new", "serviceNames": ["Microsoft Exchange Online"]}
     ]
+
+
+def test_main_opens_menu_by_default_without_cli_args() -> None:
+    args = SimpleNamespace(
+        base_url=None,
+        email="user@example.com",
+        password="secret",
+        tenant_id=None,
+        auth_path=None,
+        incidents_path=None,
+        start_time="2026-03-09T00:00:00.000",
+        incident_criteria_json="",
+        page_size=100,
+        max_pages=10,
+        pretty=False,
+        auth_mode="basic-only",
+        menu=False,
+    )
+
+    with (
+        patch.object(cli_module, "load_dotenv"),
+        patch.object(cli_module, "parse_args", return_value=args),
+        patch.object(cli_module, "run_interactive_menu", return_value=0) as menu_mock,
+        patch.object(cli_module, "run_standard_cli", return_value=0) as standard_mock,
+        patch("sys.argv", ["app.py"]),
+    ):
+        exit_code = app.main()
+
+    assert exit_code == 0
+    menu_mock.assert_called_once_with(args=args)
+    standard_mock.assert_not_called()
+
+
+def test_main_keeps_standard_cli_when_explicit_args_are_provided() -> None:
+    args = SimpleNamespace(
+        base_url=None,
+        email="user@example.com",
+        password="secret",
+        tenant_id=None,
+        auth_path=None,
+        incidents_path=None,
+        start_time="2026-03-09T00:00:00.000",
+        incident_criteria_json="",
+        page_size=100,
+        max_pages=10,
+        pretty=True,
+        auth_mode="basic-only",
+        menu=False,
+    )
+
+    with (
+        patch.object(cli_module, "load_dotenv"),
+        patch.object(cli_module, "parse_args", return_value=args),
+        patch.object(cli_module, "run_interactive_menu", return_value=0) as menu_mock,
+        patch.object(cli_module, "run_standard_cli", return_value=0) as standard_mock,
+        patch("sys.argv", ["app.py", "--pretty"]),
+    ):
+        exit_code = app.main()
+
+    assert exit_code == 0
+    menu_mock.assert_not_called()
+    standard_mock.assert_called_once_with(args)

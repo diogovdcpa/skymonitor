@@ -233,12 +233,13 @@ def run_standard_cli(args: argparse.Namespace) -> int:
     return 0
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     load_dotenv()
-    args = parse_args()
+    cli_args = list(sys.argv[1:] if argv is None else argv)
+    args = parse_args(cli_args)
 
     try:
-        if getattr(args, "menu", False):
+        if getattr(args, "menu", False) or not cli_args:
             return run_interactive_menu(args=args)
         return run_standard_cli(args)
     except Exception as exc:
