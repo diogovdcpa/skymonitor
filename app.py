@@ -612,7 +612,7 @@ def main() -> int:
     args = parse_args()
 
     try:
-        if args.menu:
+        if getattr(args, "menu", False):
             return run_interactive_menu(args=args)
         return run_standard_cli(args)
     except Exception as exc:

@@ -1,6 +1,6 @@
-# Feature 04: Cobertura TDD da regra de negocio do CLI
+# Feature 05: Cobertura TDD da regra de negocio do CLI
 
-- ID: `04`
+- ID: `05`
 - Slug: `cobertura-tdd-da-regra-de-negocio-do-cli`
 - Criada em: 2026-03-09
 - Status geral: `concluida`
@@ -52,7 +52,7 @@ Atualizar durante a execucao:
 - [x] Fase 1 - Descoberta e desenho
   - Objetivo: mapear o comportamento de negócio atual do CLI e definir o recorte inicial de cobertura.
   - Entregaveis: leitura da codebase, definição do escopo de testes e criação desta spec.
-  - Criterio de conclusao: feature criada em `docs/features/04-cobertura-tdd-da-regra-de-negocio-do-cli/spec.md` com fases preenchidas.
+  - Criterio de conclusao: feature criada em `docs/features/05-cobertura-tdd-da-regra-de-negocio-do-cli/spec.md` com fases preenchidas.
   - Status: `concluida`
 
 - [x] Fase 2 - Implementacao base
@@ -101,3 +101,4 @@ Atualizar durante a execucao:
 - 2026-03-09 - Testes de regra de negócio adicionados para token, extração de incidentes, paginação, resolução de conexão e validações de `main()`.
 - 2026-03-09 - `app.py` ajustado para impedir fallback silencioso para Basic Auth no modo `iam-tenant`.
 - 2026-03-09 - Suíte completa validada com `14 passed in 0.58s`.
+- 2026-03-09 - Feature renumerada de `04` para `05` para eliminar duplicidade de IDs em `docs/features/`.
