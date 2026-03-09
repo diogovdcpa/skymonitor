@@ -34,14 +34,21 @@ Exemplo minimo:
 
 ```bash
 source env-script/start.sh
-python app.py --pretty
+python app.py
 ```
 
-Exemplo com menu interativo:
+Exemplo com menu interativo usando a abertura padrao:
 
 ```bash
 source env-script/start.sh
-python app.py --menu
+python app.py
+```
+
+Exemplo com saida JSON no modo legado por argumentos explicitos:
+
+```bash
+source env-script/start.sh
+python app.py --pretty
 ```
 
 Exemplo com fluxo IAM por tenant:
@@ -74,6 +81,7 @@ python app.py --auth-mode iam-tenant --tenant-id SEU_TENANT_ID --pretty
 - Pagina resultados com `nextStartTime`
 - Emite JSON em linha unica ou formatado com `--pretty`
 - Oferece menu interativo com banner `SkyhighMonitor`
+- Abre o menu interativo por padrao quando executado sem argumentos
 - Permite consultar todos os incidentes a partir do dia atual ou de uma janela de dias informada
 - Permite consultar incidentes `new` de `Microsoft Exchange Online` com filtro local sobre a janela informada
 

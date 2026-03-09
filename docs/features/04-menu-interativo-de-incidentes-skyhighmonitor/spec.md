@@ -4,7 +4,7 @@
 - Slug: `menu-interativo-de-incidentes-skyhighmonitor`
 - Criada em: 2026-03-09
 - Status geral: `concluida`
-- Resumo: Adicionar um menu textual no CLI com banner, consulta padrao de incidentes do dia e atalho para incidentes new de Microsoft Exchange Online com janela de dias parametrizavel.
+- Resumo: Adicionar um menu textual no CLI com banner, abertura padrao ao executar `python app.py`, consulta padrao de incidentes do dia e atalho para incidentes new de Microsoft Exchange Online com janela de dias parametrizavel.
 
 ## 1. Objetivo
 
@@ -14,7 +14,7 @@ O menu deve abrir com um banner `SkyhighMonitor` e oferecer:
 - consulta de todos os incidentes com padrao no dia atual, permitindo ao usuario informar a quantidade de dias retroativos;
 - consulta de incidentes filtrados por `status = new` e `service = Microsoft Exchange Online`, com padrao no dia atual e opcao de informar a quantidade de dias retroativos.
 
-O resultado esperado e um fluxo interativo simples de executar, sem quebrar o uso atual por argumentos de linha de comando.
+O resultado esperado e um fluxo interativo simples de executar ao rodar `python app.py`, sem quebrar o uso atual por argumentos explicitos de linha de comando.
 
 ## 2. Contexto da codebase
 
@@ -47,7 +47,8 @@ Nenhuma referencia externa foi necessaria nesta etapa. A spec foi baseada na cod
 - Converter a quantidade de dias informada pelo usuario em `startTime` compativel com a API.
 - Reaproveitar a logica existente de autenticacao, descoberta de conexao e paginacao, evitando duplicacao de fluxo HTTP.
 - Extrair funcoes auxiliares para montar filtros, calcular janela de consulta e formatar a saida em tela.
-- Manter compatibilidade com o modo atual por argumentos para nao quebrar automacoes existentes.
+- Abrir o menu automaticamente quando o CLI for executado sem argumentos.
+- Manter compatibilidade com o modo atual por argumentos explicitos para nao quebrar automacoes existentes.
 - Adicionar testes automatizados para o menu, para o calculo da janela de dias e para a montagem do filtro `new + Microsoft Exchange Online`.
 - Atualizar a documentacao de uso no `README.md`.
 
@@ -74,7 +75,7 @@ Atualizar durante a execucao:
 
 - [x] Fase 2 - Implementacao base
   - Objetivo: implementar o modo interativo com banner, leitura de opcao e reaproveitamento do fluxo de consulta existente.
-  - Entregaveis: entrada `--menu` ou comportamento interativo equivalente, banner `SkyhighMonitor`, menu principal, validacao da quantidade de dias e execucao da opcao "todos os incidentes".
+  - Entregaveis: entrada `--menu` e abertura padrao sem argumentos, banner `SkyhighMonitor`, menu principal, validacao da quantidade de dias e execucao da opcao "todos os incidentes".
   - Criterio de conclusao: usuario consegue abrir o menu, escolher a opcao padrao e obter incidentes do dia atual ou de uma janela informada.
   - Status: `concluida`
 
@@ -111,6 +112,7 @@ Atualizar durante a execucao:
   - executar a mesma opcao com quantidade customizada de dias;
   - validar mensagens de erro para entradas invalidas.
 - Cenarios de regressao:
+  - execucao padrao `python app.py` abre o menu interativo;
   - execucao atual `python app.py --pretty` continua funcional;
   - autenticacao e descoberta automatica de endpoint permanecem inalteradas;
   - formato JSON legado continua disponivel fora do menu.
@@ -131,3 +133,4 @@ Atualizar durante a execucao:
 - 2026-03-09 - Fase 1 concluida com desenho inicial da feature, escopo fechado e plano de implantacao definido.
 - 2026-03-09 - Fases 2, 3 e 4 concluidas com implementacao do menu, testes automatizados e atualizacao do README.
 - 2026-03-09 - Fase 5 concluida com estabilizacao final do CLI, ajuste de compatibilidade em `main()` e suite oficial validada com `23 passed in 0.61s`.
+- 2026-03-09 - Ajuste incremental aplicado para abrir o menu por padrao em `python app.py`, preservando o modo JSON quando ha argumentos explicitos.
