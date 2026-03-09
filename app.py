@@ -337,6 +337,7 @@ def try_resolve_connection(
     tenant_id: Optional[str],
 ) -> Dict[str, Any]:
     errors: List[str] = []
+    strict_token_only_mode = auth_mode == "iam-tenant"
 
     for base_url in base_candidates:
         token: Optional[str] = None
@@ -363,6 +364,10 @@ def try_resolve_connection(
                     break
                 except Exception as exc:
                     errors.append(f"[{base_url}] legacy {auth_path} falhou: {exc}")
+
+        if strict_token_only_mode and token is None:
+            errors.append(f"[{base_url}] incidente nao testado: autenticacao iam-tenant nao gerou token.")
+            continue
 
         # 3) valida endpoint de incidente com token ou basic (testa caminhos candidatos)
         for incidents_path in incidents_paths:
