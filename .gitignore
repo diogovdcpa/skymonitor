@@ -74,3 +74,6 @@ site/
 # Local databases
 *.sqlite3
 *.db
+
+# Arquivos locais com dados sensiveis exportados pelo CLI
+exchange_incidents_*.csv

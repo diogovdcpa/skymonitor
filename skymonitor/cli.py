@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from datetime import datetime
+from pathlib import Path
+from typing import cast
 
 from skymonitor.api import (
     _build_auth_paths,
@@ -12,6 +15,7 @@ from skymonitor.api import (
     _require_arg,
     build_start_time_for_days,
     fetch_all_incidents,
+    filter_exchange_online_incidents,
     filter_new_exchange_online_incidents,
     load_dotenv,
     parse_base_candidates,
@@ -133,6 +137,8 @@ def execute_menu_query(
     incidents = execute_incident_query(args, start_time=start_time, incident_criteria=None)
     if mode == "exchange_new":
         return filter_new_exchange_online_incidents(incidents)
+    if mode == "exchange":
+        return filter_exchange_online_incidents(incidents)
     return incidents
 
 
@@ -169,17 +175,63 @@ def _format_incident_line(incident: IncidentRecord) -> str:
     )
 
 
+def _stringify_csv_value(value: JSONValue) -> str:
+    if isinstance(value, list):
+        parts = [str(item) for item in value if not isinstance(item, (dict, list))]
+        return ";".join(parts)
+    if isinstance(value, dict) or value is None:
+        return ""
+    return str(value)
+
+
+def _extract_csv_field(incident: IncidentRecord, field_name: str) -> str:
+    info = incident.get("information")
+
+    if field_name == "from":
+        actor_id = incident.get("actorId")
+        if actor_id is not None:
+            return str(actor_id)
+        return ""
+
+    if field_name == "to" and isinstance(info, dict):
+        info_value = cast(dict[str, JSONValue], info).get("internalCollaborators")
+        if info_value is not None:
+            return _stringify_csv_value(info_value)
+    return ""
+
+
+def export_incidents_csv(
+    incidents: list[IncidentRecord],
+    output_path: Path,
+) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=["incident_id", "from", "to"])
+        writer.writeheader()
+        for incident in incidents:
+            writer.writerow(
+                {
+                    "incident_id": incident.get("incidentId") or incident.get("id", ""),
+                    "from": _extract_csv_field(incident, "from"),
+                    "to": _extract_csv_field(incident, "to"),
+                }
+            )
+    return output_path
+
+
 def run_interactive_menu(
     args: argparse.Namespace | None = None,
     input_func: InputFunc = input,
     output_func: OutputFunc = print,
     execute_query: MenuQueryExecutor | None = None,
     now: datetime | None = None,
+    export_dir: Path | None = None,
 ) -> int:
     runtime_args = args or parse_args([])
     query_executor = execute_query or (
         lambda mode, start_time: execute_menu_query(runtime_args, mode, start_time)
     )
+    csv_export_dir = export_dir or Path.cwd()
 
     output_func("========================================")
     output_func("            SkyhighMonitor")
@@ -189,6 +241,7 @@ def run_interactive_menu(
         output_func("")
         output_func("1. Trazer todos os incidentes")
         output_func("2. Trazer incidentes new de Microsoft Exchange Online")
+        output_func("3. Baixar CSV de incidentes de Microsoft Exchange Online (1 dia)")
         output_func("0. Sair")
 
         choice = input_func("Escolha uma opcao: ").strip()
@@ -196,8 +249,19 @@ def run_interactive_menu(
             output_func("Encerrando menu.")
             return 0
 
-        if choice not in {"1", "2"}:
-            output_func("Opcao invalida. Escolha 1, 2 ou 0.")
+        if choice not in {"1", "2", "3"}:
+            output_func("Opcao invalida. Escolha 1, 2, 3 ou 0.")
+            continue
+
+        if choice == "3":
+            current_time = now or datetime.now()
+            start_time = build_start_time_for_days(1, now=current_time)
+            incidents = query_executor("exchange", start_time)
+            output_path = csv_export_dir / current_time.strftime("exchange_incidents_%Y%m%d.csv")
+            export_incidents_csv(incidents, output_path)
+            output_func(f"Janela consultada desde: {start_time}")
+            output_func(f"Total de incidentes exportados: {len(incidents)}")
+            output_func(f"CSV exportado em: {output_path}")
             continue
 
         days = _prompt_days(input_func, output_func)

@@ -31,6 +31,7 @@ class IncidentRecord(TypedDict, total=False):
     incidentRiskSeverity: str
     status: str
     actorId: str
+    instanceName: str
     serviceNames: list[str]
     information: IncidentInformation
 

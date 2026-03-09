@@ -234,6 +234,7 @@ def fetch_all_incidents(
 ) -> list[IncidentRecord]:
     incidents: list[IncidentRecord] = []
     current_start_time = start_time
+    seen_keys: set[str] = set()
 
     for _ in range(max_pages):
         response = query_incidents_page(
@@ -247,7 +248,12 @@ def fetch_all_incidents(
             password=password,
         )
         page_items = _extract_incident_items(response)
-        incidents.extend(page_items)
+        for item in page_items:
+            incident_key = _incident_dedupe_key(item)
+            if incident_key in seen_keys:
+                continue
+            seen_keys.add(incident_key)
+            incidents.append(item)
         next_start_time = _extract_next_start_time(response)
 
         if len(page_items) < page_size:
@@ -259,6 +265,14 @@ def fetch_all_incidents(
         current_start_time = next_start_time
 
     return incidents
+
+
+def _incident_dedupe_key(incident: IncidentRecord) -> str:
+    if incident_id := incident.get("incidentId"):
+        return f"incidentId:{incident_id}"
+    if record_id := incident.get("id"):
+        return f"id:{record_id}"
+    return json.dumps(incident, sort_keys=True, ensure_ascii=False)
 
 
 def parse_base_candidates(args_base_url: str | None) -> list[str]:
@@ -309,14 +323,22 @@ def build_start_time_for_days(days: int, now: datetime | None = None) -> str:
 def filter_new_exchange_online_incidents(
     incidents: list[IncidentRecord],
 ) -> list[IncidentRecord]:
+    filtered = filter_exchange_online_incidents(incidents)
+    return [item for item in filtered if item.get("status") == "new"]
+
+
+def filter_exchange_online_incidents(
+    incidents: list[IncidentRecord],
+) -> list[IncidentRecord]:
     filtered: list[IncidentRecord] = []
     for item in incidents:
         services = item.get("serviceNames")
-        if item.get("status") != "new":
-            continue
+        instance_name = item.get("instanceName")
         if not isinstance(services, list):
             continue
         if "Microsoft Exchange Online" not in services:
+            continue
+        if instance_name != "Exchange Online":
             continue
         filtered.append(item)
     return filtered
