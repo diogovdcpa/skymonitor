@@ -3,7 +3,7 @@
 - ID: `04`
 - Slug: `menu-interativo-de-incidentes-skyhighmonitor`
 - Criada em: 2026-03-09
-- Status geral: `em andamento`
+- Status geral: `concluida`
 - Resumo: Adicionar um menu textual no CLI com banner, consulta padrao de incidentes do dia e atalho para incidentes new de Microsoft Exchange Online com janela de dias parametrizavel.
 
 ## 1. Objetivo
@@ -66,7 +66,7 @@ Atualizar durante a execucao:
 - Atualizar `Status` da fase.
 - Registrar no historico ao final de cada fase.
 
-- [ ] Fase 1 - Descoberta e desenho
+- [x] Fase 1 - Descoberta e desenho
   - Objetivo: isolar o nucleo de consulta atual em funcoes mais testaveis e definir a estrutura do menu sem alterar o comportamento existente.
   - Entregaveis: desenho do fluxo interativo, funcao para calcular `startTime` a partir de dias, funcao para montar filtros predefinidos e atualizacao da spec.
   - Criterio de conclusao: responsabilidades do menu e do fluxo legado estao separadas no desenho e cobertas por cenarios de teste planejados.
@@ -90,11 +90,11 @@ Atualizar durante a execucao:
   - Criterio de conclusao: a documentacao permite reproduzir o fluxo sem leitura do codigo e a validacao manual confirma o resultado esperado.
   - Status: `concluida`
 
-- [ ] Fase 5 - Estabilizacao e fechamento
+- [x] Fase 5 - Estabilizacao e fechamento
   - Objetivo: fechar a feature com limpeza de codigo, regressao validada e status atualizado.
   - Entregaveis: ajustes finais de UX textual, remocao de duplicacoes, execucao completa de testes relevantes e atualizacao do historico da spec.
   - Criterio de conclusao: implementacao concluida com testes passando e spec refletindo o estado final.
-  - Status: `nao iniciada`
+  - Status: `concluida`
 
 ## 6. Validacao
 
@@ -130,3 +130,4 @@ Atualizar durante a execucao:
 - 2026-03-09 - Spec criada.
 - 2026-03-09 - Fase 1 concluida com desenho inicial da feature, escopo fechado e plano de implantacao definido.
 - 2026-03-09 - Fases 2, 3 e 4 concluidas com implementacao do menu, testes automatizados e atualizacao do README.
+- 2026-03-09 - Fase 5 concluida com estabilizacao final do CLI, ajuste de compatibilidade em `main()` e suite oficial validada com `23 passed in 0.61s`.
