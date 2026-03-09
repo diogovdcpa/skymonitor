@@ -84,6 +84,17 @@ python app.py --auth-mode iam-tenant --tenant-id SEU_TENANT_ID --pretty
 - Abre o menu interativo por padrao quando executado sem argumentos
 - Permite consultar todos os incidentes a partir do dia atual ou de uma janela de dias informada
 - Permite consultar incidentes `new` de `Microsoft Exchange Online` com filtro local sobre a janela informada
+- Permite exportar em CSV os incidentes de `Microsoft Exchange Online` da janela fixa de 1 dia, com paginação completa e deduplicacao por incidente
+
+## Menu interativo
+
+Ao abrir `python app.py` sem argumentos, o menu oferece:
+
+- `1`: trazer todos os incidentes para a janela de dias informada
+- `2`: trazer incidentes `new` de `Microsoft Exchange Online` para a janela de dias informada
+- `3`: gerar `exchange_incidents_YYYYMMDD.csv` no diretorio atual com colunas `incident_id`, `from` e `to`, usando janela fixa de 1 dia
+
+Na opcao `3`, o CLI consulta todas as paginas disponiveis e remove incidentes repetidos antes de gravar o CSV final.
 
 ## Lacunas atuais
 

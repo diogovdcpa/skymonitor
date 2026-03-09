@@ -11,6 +11,7 @@ _dedupe = _api._dedupe
 _extract_incident_items = _api._extract_incident_items
 _extract_next_start_time = _api._extract_next_start_time
 _extract_token = _api._extract_token
+filter_exchange_online_incidents = _api.filter_exchange_online_incidents
 _http_json = _api._http_json
 _parse_incident_criteria = _api._parse_incident_criteria
 _require_arg = _api._require_arg
@@ -37,6 +38,7 @@ run_standard_cli = _cli.run_standard_cli
 try_resolve_connection = _api.try_resolve_connection
 _format_incident_line = _cli._format_incident_line
 _prompt_days = _cli._prompt_days
+export_incidents_csv = _cli.export_incidents_csv
 
 __all__ = [
     "DEFAULT_BASE_URLS",
@@ -61,7 +63,9 @@ __all__ = [
     "env",
     "execute_incident_query",
     "execute_menu_query",
+    "export_incidents_csv",
     "fetch_all_incidents",
+    "filter_exchange_online_incidents",
     "filter_new_exchange_online_incidents",
     "load_dotenv",
     "main",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -34,20 +35,50 @@ def test_filter_new_exchange_online_incidents_returns_only_matching_items() -> N
             "incidentId": "DLP-1",
             "status": "new",
             "serviceNames": ["Microsoft Exchange Online"],
+            "instanceName": "Exchange Online",
         },
         {
             "incidentId": "DLP-2",
             "status": "suppressed",
             "serviceNames": ["Microsoft Exchange Online"],
+            "instanceName": "Exchange Online",
         },
         {
             "incidentId": "DLP-3",
             "status": "new",
             "serviceNames": ["OneDrive"],
+            "instanceName": "Exchange Online",
         },
     ]
 
     filtered = app.filter_new_exchange_online_incidents(incidents)
+
+    assert filtered == [incidents[0]]
+
+
+def test_filter_exchange_online_incidents_returns_only_matching_items() -> None:
+    incidents = [
+        {
+            "incidentId": "DLP-1",
+            "status": "new",
+            "serviceNames": ["Microsoft Exchange Online"],
+            "instanceName": "Exchange Online",
+        },
+        {
+            "incidentId": "DLP-2",
+            "status": "suppressed",
+            "serviceNames": ["Microsoft Exchange Online"],
+            "instanceName": "OneDrive",
+        },
+        {
+            "incidentId": "DLP-3",
+            "status": "new",
+            "serviceNames": ["OneDrive"],
+            "instanceName": "Exchange Online",
+        },
+    ]
+
+    filtered = app.filter_exchange_online_incidents(incidents)
 
     assert filtered == [incidents[0]]
 
@@ -122,6 +153,55 @@ def test_run_menu_executes_exchange_option_with_custom_days() -> None:
     assert any("Total de incidentes retornados: 1" in line for line in outputs)
 
 
+def test_run_menu_exports_exchange_csv_for_one_day(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    captured: list[tuple[str, str]] = []
+    outputs: list[str] = []
+    answers = iter(["3", "0"])
+
+    def fake_execute(mode: str, start_time: str) -> list[dict[str, object]]:
+        captured.append((mode, start_time))
+        return [
+            {
+                "incidentId": "DLP-30",
+                "actorId": "origem@example.com",
+                "information": {
+                    "internalCollaborators": [
+                        "destino1@example.com",
+                        "destino2@example.com",
+                    ]
+                },
+            }
+        ]
+
+    result = app.run_interactive_menu(
+        input_func=lambda _: next(answers),
+        output_func=outputs.append,
+        execute_query=fake_execute,
+        now=datetime(2026, 3, 9, 15, 47, 12),
+        export_dir=tmp_path,
+    )
+
+    csv_path = tmp_path / "exchange_incidents_20260309.csv"
+
+    assert result == 0
+    assert captured == [("exchange", "2026-03-09T00:00:00.000Z")]
+    assert csv_path.exists()
+    assert any("CSV exportado em:" in line for line in outputs)
+
+    with csv_path.open(newline="", encoding="utf-8") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    assert rows == [
+        {
+            "incident_id": "DLP-30",
+            "from": "origem@example.com",
+            "to": "destino1@example.com;destino2@example.com",
+        }
+    ]
+
+
 def test_run_menu_reprompts_for_invalid_days() -> None:
     captured: list[tuple[str, str]] = []
     outputs: list[str] = []
@@ -177,11 +257,13 @@ def test_execute_menu_query_filters_exchange_new(monkeypatch: pytest.MonkeyPatch
                 "incidentId": "DLP-1",
                 "status": "new",
                 "serviceNames": ["Microsoft Exchange Online"],
+                "instanceName": "Exchange Online",
             },
             {
                 "incidentId": "DLP-2",
                 "status": "suppressed",
                 "serviceNames": ["Microsoft Exchange Online"],
+                "instanceName": "Exchange Online",
             },
         ],
     )
@@ -189,7 +271,75 @@ def test_execute_menu_query_filters_exchange_new(monkeypatch: pytest.MonkeyPatch
     incidents = app.execute_menu_query(args, "exchange_new", "2026-03-09T00:00:00.000Z")
 
     assert incidents == [
-        {"incidentId": "DLP-1", "status": "new", "serviceNames": ["Microsoft Exchange Online"]}
+        {
+            "incidentId": "DLP-1",
+            "status": "new",
+            "serviceNames": ["Microsoft Exchange Online"],
+            "instanceName": "Exchange Online",
+        }
+    ]
+
+
+def test_execute_menu_query_filters_exchange(monkeypatch: pytest.MonkeyPatch) -> None:
+    args = argparse.Namespace(
+        base_url=None,
+        email="user@example.com",
+        password="secret",
+        tenant_id=None,
+        auth_path=None,
+        incidents_path=None,
+        start_time="2020-01-01T00:00:00.000",
+        incident_criteria_json="",
+        page_size=50,
+        max_pages=3,
+        pretty=False,
+        auth_mode="basic-only",
+        menu=True,
+    )
+
+    monkeypatch.setattr(
+        cli_module,
+        "try_resolve_connection",
+        lambda **_: {
+            "base_url": "https://unit.test",
+            "incidents_path": "/incidents",
+            "token": None,
+        },
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "fetch_all_incidents",
+        lambda **_: [
+            {
+                "incidentId": "DLP-1",
+                "status": "new",
+                "serviceNames": ["Microsoft Exchange Online"],
+                "instanceName": "Exchange Online",
+            },
+            {
+                "incidentId": "DLP-2",
+                "status": "suppressed",
+                "serviceNames": ["Microsoft Exchange Online"],
+                "instanceName": "OneDrive",
+            },
+            {
+                "incidentId": "DLP-3",
+                "status": "new",
+                "serviceNames": ["Teams"],
+                "instanceName": "Exchange Online",
+            },
+        ],
+    )
+
+    incidents = app.execute_menu_query(args, "exchange", "2026-03-09T00:00:00.000Z")
+
+    assert incidents == [
+        {
+            "incidentId": "DLP-1",
+            "status": "new",
+            "serviceNames": ["Microsoft Exchange Online"],
+            "instanceName": "Exchange Online",
+        }
     ]
 
 

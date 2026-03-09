@@ -69,6 +69,40 @@ def test_fetch_all_incidents_uses_next_start_time_until_last_page() -> None:
     assert calls == ["initial-token", "next-token"]
 
 
+def test_fetch_all_incidents_deduplicates_repeated_incidents_between_pages() -> None:
+    responses = [
+        {
+            "incidents": [{"incidentId": "DLP-1"}, {"incidentId": "DLP-2"}],
+            "responseInfo": {"nextStartTime": "next-token"},
+        },
+        {
+            "incidents": [{"incidentId": "DLP-2"}, {"incidentId": "DLP-3"}],
+            "responseInfo": {"nextStartTime": "final-token"},
+        },
+    ]
+    calls: list[str | None] = []
+
+    def fake_query_incidents_page(**kwargs: object) -> object:
+        calls.append(kwargs["start_time"])  # type: ignore[index]
+        return responses[len(calls) - 1]
+
+    with patch.object(api_module, "query_incidents_page", side_effect=fake_query_incidents_page):
+        incidents = app.fetch_all_incidents(
+            base_url="https://example.test",
+            incidents_path="/incidents",
+            page_size=2,
+            max_pages=2,
+            start_time="initial-token",
+            incident_criteria=None,
+            token="token-123",
+            email="user@example.com",
+            password="secret",
+        )
+
+    assert incidents == [{"incidentId": "DLP-1"}, {"incidentId": "DLP-2"}, {"incidentId": "DLP-3"}]
+    assert calls == ["initial-token", "next-token"]
+
+
 def test_try_resolve_connection_returns_first_working_incidents_path() -> None:
     with (
         patch.object(api_module, "authenticate_skyhigh", return_value="token-123") as auth_mock,
