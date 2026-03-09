@@ -7,6 +7,8 @@ from unittest.mock import patch
 import pytest
 
 import app
+from skymonitor import api as api_module
+from skymonitor import cli as cli_module
 
 
 def test_extract_token_accepts_nested_data_token() -> None:
@@ -19,6 +21,12 @@ def test_extract_incident_items_reads_nested_body_incidents() -> None:
     response = {"body": {"incidents": [{"id": "1", "severity": "HIGH"}, {"id": "2"}]}}
 
     assert app._extract_incident_items(response) == [{"id": "1", "severity": "HIGH"}, {"id": "2"}]
+
+
+def test_extract_incident_items_accepts_single_incident_object() -> None:
+    response = {"id": "1", "severity": "HIGH", "status": "new"}
+
+    assert app._extract_incident_items(response) == [response]
 
 
 def test_extract_next_start_time_reads_nested_response_info() -> None:
@@ -44,7 +52,7 @@ def test_fetch_all_incidents_uses_next_start_time_until_last_page() -> None:
         calls.append(kwargs["start_time"])  # type: ignore[index]
         return responses[len(calls) - 1]
 
-    with patch("app.query_incidents_page", side_effect=fake_query_incidents_page):
+    with patch.object(api_module, "query_incidents_page", side_effect=fake_query_incidents_page):
         incidents = app.fetch_all_incidents(
             base_url="https://example.test",
             incidents_path="/incidents",
@@ -62,10 +70,14 @@ def test_fetch_all_incidents_uses_next_start_time_until_last_page() -> None:
 
 
 def test_try_resolve_connection_returns_first_working_incidents_path() -> None:
-    with patch("app.authenticate_skyhigh", return_value="token-123") as auth_mock, patch(
-        "app.query_incidents_page",
-        side_effect=[RuntimeError("primeiro endpoint falhou"), {"incidents": [{"id": "1"}]}],
-    ) as query_mock:
+    with (
+        patch.object(api_module, "authenticate_skyhigh", return_value="token-123") as auth_mock,
+        patch.object(
+            api_module,
+            "query_incidents_page",
+            side_effect=[RuntimeError("primeiro endpoint falhou"), {"incidents": [{"id": "1"}]}],
+        ) as query_mock,
+    ):
         resolved = app.try_resolve_connection(
             base_candidates=["https://example.test"],
             auth_paths=["/auth/login"],
@@ -89,9 +101,12 @@ def test_try_resolve_connection_returns_first_working_incidents_path() -> None:
 
 
 def test_try_resolve_connection_does_not_fallback_to_basic_in_iam_tenant_mode() -> None:
-    with patch("app.authenticate_iam_tenant", side_effect=RuntimeError("tenant auth falhou")), patch(
-        "app.query_incidents_page"
-    ) as query_mock:
+    with (
+        patch.object(
+            api_module, "authenticate_iam_tenant", side_effect=RuntimeError("tenant auth falhou")
+        ),
+        patch.object(api_module, "query_incidents_page") as query_mock,
+    ):
         with pytest.raises(RuntimeError, match="Nenhuma combinacao base/auth funcionou"):
             app.try_resolve_connection(
                 base_candidates=["https://example.test"],
@@ -109,7 +124,9 @@ def test_try_resolve_connection_does_not_fallback_to_basic_in_iam_tenant_mode() 
     query_mock.assert_not_called()
 
 
-def test_main_returns_error_when_incident_criteria_is_not_an_object(capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_returns_error_when_incident_criteria_is_not_an_object(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     args = SimpleNamespace(
         base_url=None,
         email="user@example.com",
@@ -125,7 +142,9 @@ def test_main_returns_error_when_incident_criteria_is_not_an_object(capsys: pyte
         auth_mode="basic-only",
     )
 
-    with patch("app.load_dotenv"), patch("app.parse_args", return_value=args):
+    with patch.object(cli_module, "load_dotenv"), patch.object(
+        cli_module, "parse_args", return_value=args
+    ):
         exit_code = app.main()
 
     captured = capsys.readouterr()
@@ -149,7 +168,9 @@ def test_main_requires_tenant_id_for_iam_tenant_mode(capsys: pytest.CaptureFixtu
         auth_mode="iam-tenant",
     )
 
-    with patch("app.load_dotenv"), patch("app.parse_args", return_value=args):
+    with patch.object(cli_module, "load_dotenv"), patch.object(
+        cli_module, "parse_args", return_value=args
+    ):
         exit_code = app.main()
 
     captured = capsys.readouterr()
