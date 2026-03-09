@@ -1,2 +1,3 @@
-# SkyMonitor currently uses only Python standard library modules.
-# No third-party packages are required.
+# SkyMonitor runtime uses only Python standard library modules.
+# Development and test workflow currently depends on pytest.
+pytest==9.0.2

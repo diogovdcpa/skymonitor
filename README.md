@@ -7,17 +7,18 @@ SkyMonitor e um CLI Python para autenticar e consultar incidentes nas APIs do Sk
 - Aplicacao principal em `app.py`
 - Configuracao por variaveis de ambiente em `.env`
 - Exemplo de configuracao em `.env.example`
-- Dependencias externas nao sao necessarias no momento; `requirements.txt` documenta isso explicitamente
+- O runtime principal usa apenas biblioteca padrao; o fluxo de testes usa `pytest` documentado em `requirements.txt`
 - Documentacao de referencia da API em `docs/referencias/skyhigh/`
 
 ## Preparacao do ambiente
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-test -n "$VIRTUAL_ENV" || { echo "Erro: ative um ambiente virtual antes de executar comandos."; exit 1; }
+source env-script/start.sh
 cp .env.example .env
 ```
+
+Se preferir o fluxo manual, `source .venv/bin/activate` continua valido.
 
 Preencha ao menos:
 
@@ -31,18 +32,22 @@ Preencha ao menos:
 Exemplo minimo:
 
 ```bash
-source .venv/bin/activate
-test -n "$VIRTUAL_ENV" || { echo "Erro: ative um ambiente virtual antes de executar comandos."; exit 1; }
+source env-script/start.sh
 python app.py --pretty
 ```
 
 Exemplo com fluxo IAM por tenant:
 
 ```bash
-source .venv/bin/activate
-test -n "$VIRTUAL_ENV" || { echo "Erro: ative um ambiente virtual antes de executar comandos."; exit 1; }
+source env-script/start.sh
 python app.py --auth-mode iam-tenant --tenant-id SEU_TENANT_ID --pretty
 ```
+
+## Scripts de ambiente
+
+- `source env-script/start.sh`: ativa a `.venv` na shell atual e valida `VIRTUAL_ENV`.
+- `source env-script/stop.sh`: encerra o ambiente virtual na shell atual.
+- `bash env-script/test.sh`: executa `pytest -q`, mas exige ambiente virtual ja ativo.
 
 ## Capacidades atuais do CLI
 
@@ -54,6 +59,6 @@ python app.py --auth-mode iam-tenant --tenant-id SEU_TENANT_ID --pretty
 
 ## Lacunas atuais
 
-- Ainda nao existe suite de testes em `tests/`
+- A suite de testes ainda e inicial e cobre apenas os scripts de ambiente em `tests/`
 - Ainda nao ha empacotamento Python com `pyproject.toml`
 - A validacao do comportamento hoje depende de execucao manual e das referencias em `docs/`
