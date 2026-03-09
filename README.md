@@ -36,6 +36,13 @@ source env-script/start.sh
 python app.py --pretty
 ```
 
+Exemplo com menu interativo:
+
+```bash
+source env-script/start.sh
+python app.py --menu
+```
+
 Exemplo com fluxo IAM por tenant:
 
 ```bash
@@ -56,6 +63,9 @@ python app.py --auth-mode iam-tenant --tenant-id SEU_TENANT_ID --pretty
 - Testa combinacoes de base URL e endpoint de incidentes para encontrar uma conexao valida
 - Pagina resultados com `nextStartTime`
 - Emite JSON em linha unica ou formatado com `--pretty`
+- Oferece menu interativo com banner `SkyhighMonitor`
+- Permite consultar todos os incidentes a partir do dia atual ou de uma janela de dias informada
+- Permite consultar incidentes `new` de `Microsoft Exchange Online` com filtro local sobre a janela informada
 
 ## Lacunas atuais
 
