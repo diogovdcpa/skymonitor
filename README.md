@@ -28,6 +28,13 @@ Preencha ao menos:
 - `SKY_BASE_URL` ou `SKY_BASE_URLS`
 - `SKY_AUTH_MODE`
 
+Para o script PowerShell de exportacao, o minimo recomendado no `.env` e:
+
+- `SKY_EMAIL`
+- `SKY_PASSWORD`
+
+Se o tenant exigir host fixo, inclua tambem `SKY_BASE_URL`.
+
 ## Execucao
 
 Exemplo minimo:
@@ -58,6 +65,38 @@ source env-script/start.sh
 python app.py --auth-mode iam-tenant --tenant-id SEU_TENANT_ID --pretty
 ```
 
+Exemplo de exportacao direta da opcao `3`, sem abrir o menu:
+
+```bash
+source env-script/start.sh
+python app.py --export-exchange-csv --export-dir .
+```
+
+## Script PowerShell
+
+Para usuarios Windows, a raiz do repositorio agora inclui `export-exchange-incidents.ps1`.
+
+O script:
+
+- exibe o banner `SkyhighMonitor`;
+- roda de forma nativa em PowerShell, sem depender de Python;
+- le `SKY_EMAIL` e `SKY_PASSWORD` de um `.env` no diretorio onde ele for executado;
+- aceita `SKY_BASE_URL` no mesmo `.env` quando o ambiente exigir host especifico;
+- consulta o endpoint `queryIncidents`, pagina os resultados e deduplica incidentes repetidos;
+- gera `exchange_incidents_YYYYMMDD.csv` no diretorio atual de execucao.
+
+Exemplo:
+
+```powershell
+./export-exchange-incidents.ps1
+```
+
+Para apontar para outro arquivo `.env`:
+
+```powershell
+./export-exchange-incidents.ps1 -EnvFile ".env"
+```
+
 ## Scripts de ambiente
 
 - `source env-script/start.sh`: ativa a `.venv` na shell atual e valida `VIRTUAL_ENV`.
@@ -85,6 +124,7 @@ python app.py --auth-mode iam-tenant --tenant-id SEU_TENANT_ID --pretty
 - Permite consultar todos os incidentes a partir do dia atual ou de uma janela de dias informada
 - Permite consultar incidentes `new` de `Microsoft Exchange Online` com filtro local sobre a janela informada
 - Permite exportar em CSV os incidentes de `Microsoft Exchange Online` da janela fixa de 1 dia, com paginação completa e deduplicacao por incidente
+- Oferece um script PowerShell dedicado para executar essa exportacao diretamente no diretorio atual
 
 ## Menu interativo
 

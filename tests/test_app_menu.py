@@ -90,6 +90,22 @@ def test_parse_args_accepts_menu_flag() -> None:
     assert args.menu is True
 
 
+def test_parse_args_accepts_export_exchange_csv_flags() -> None:
+    args = app.parse_args(
+        [
+            "--export-exchange-csv",
+            "--env-file",
+            "custom.env",
+            "--export-dir",
+            "/tmp/export",
+        ]
+    )
+
+    assert args.export_exchange_csv is True
+    assert args.env_file == "custom.env"
+    assert args.export_dir == "/tmp/export"
+
+
 def test_format_incident_line_includes_main_fields() -> None:
     line = app._format_incident_line(
         {
@@ -201,6 +217,39 @@ def test_run_menu_exports_exchange_csv_for_one_day(
             "to": "destino1@example.com;destino2@example.com",
         }
     ]
+
+
+def test_run_exchange_csv_export_writes_csv_in_requested_directory(tmp_path: Path) -> None:
+    outputs: list[str] = []
+    captured: list[tuple[str, str]] = []
+    args = SimpleNamespace()
+
+    def fake_execute(mode: str, start_time: str) -> list[dict[str, object]]:
+        captured.append((mode, start_time))
+        return [
+            {
+                "incidentId": "DLP-40",
+                "actorId": "origem@example.com",
+                "information": {"internalCollaborators": ["destino@example.com"]},
+            }
+        ]
+
+    result = cli_module.run_exchange_csv_export(
+        args=args,
+        output_func=outputs.append,
+        execute_query=fake_execute,
+        now=datetime(2026, 3, 10, 9, 0, 0),
+        export_dir=tmp_path,
+    )
+
+    csv_path = tmp_path / "exchange_incidents_20260310.csv"
+
+    assert result == 0
+    assert captured == [("exchange", "2026-03-10T00:00:00.000Z")]
+    assert csv_path.exists()
+    assert any("SkyhighMonitor" in line for line in outputs)
+    assert any(f"CSV exportado em: {csv_path}" in line for line in outputs)
+
 
 def test_run_menu_reprompts_for_invalid_days() -> None:
     captured: list[tuple[str, str]] = []
@@ -349,7 +398,9 @@ def test_export_incidents_csv_writes_expected_columns(tmp_path: Path) -> None:
             {
                 "incidentId": "2510186",
                 "actorId": "user@example.com",
-                "information": {"internalCollaborators": ["dest1@example.com", "dest2@example.com"]},
+                "information": {
+                    "internalCollaborators": ["dest1@example.com", "dest2@example.com"]
+                },
             }
         ],
         output_path,
@@ -427,3 +478,60 @@ def test_main_keeps_standard_cli_when_explicit_args_are_provided() -> None:
     assert exit_code == 0
     menu_mock.assert_not_called()
     standard_mock.assert_called_once_with(args)
+
+
+def test_main_dispatches_exchange_csv_export_with_custom_env_file() -> None:
+    args = SimpleNamespace(
+        base_url=None,
+        email="user@example.com",
+        password="secret",
+        tenant_id=None,
+        auth_path=None,
+        incidents_path=None,
+        start_time="2026-03-10T00:00:00.000",
+        incident_criteria_json="",
+        page_size=100,
+        max_pages=10,
+        pretty=False,
+        auth_mode="basic-only",
+        menu=False,
+        export_exchange_csv=True,
+        env_file="/tmp/skymonitor.env",
+        export_dir="/tmp/export",
+    )
+
+    with (
+        patch.object(cli_module, "load_dotenv") as load_dotenv_mock,
+        patch.object(cli_module, "parse_args", return_value=args),
+        patch.object(cli_module, "run_exchange_csv_export", return_value=0) as export_mock,
+        patch.object(cli_module, "run_interactive_menu", return_value=0) as menu_mock,
+        patch.object(cli_module, "run_standard_cli", return_value=0) as standard_mock,
+        patch("sys.argv", ["app.py", "--env-file", "/tmp/skymonitor.env", "--export-exchange-csv"]),
+    ):
+        exit_code = app.main()
+
+    assert exit_code == 0
+    load_dotenv_mock.assert_called_once_with("/tmp/skymonitor.env")
+    export_mock.assert_called_once()
+    assert export_mock.call_args.kwargs["args"] is args
+    assert export_mock.call_args.kwargs["export_dir"] == Path("/tmp/export")
+    menu_mock.assert_not_called()
+    standard_mock.assert_not_called()
+
+
+def test_powershell_export_script_uses_current_directory_contract() -> None:
+    script_path = Path(__file__).resolve().parents[1] / "export-exchange-incidents.ps1"
+
+    assert script_path.exists()
+
+    content = script_path.read_text(encoding="utf-8")
+
+    assert "SkyhighMonitor" in content
+    assert "Get-Location" in content
+    assert ".env" in content
+    assert "Invoke-RestMethod" in content
+    assert "Export-Csv" in content
+    assert "queryIncidents" in content
+    assert "nextStartTime" in content
+    assert "python" not in content.lower()
+    assert "app.py" not in content

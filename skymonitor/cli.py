@@ -84,6 +84,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Abre um menu interativo com consultas predefinidas.",
     )
+    parser.add_argument(
+        "--export-exchange-csv",
+        action="store_true",
+        help="Exporta em CSV os incidentes de Microsoft Exchange Online da janela fixa de 1 dia.",
+    )
+    parser.add_argument(
+        "--export-dir",
+        default=None,
+        help="Diretorio de saida usado na exportacao CSV da janela fixa de 1 dia.",
+    )
+    parser.add_argument(
+        "--env-file",
+        default=".env",
+        help="Caminho do arquivo .env carregado antes da execucao.",
+    )
     args = parser.parse_args(argv)
     return apply_runtime_config(args)
 
@@ -219,6 +234,37 @@ def export_incidents_csv(
     return output_path
 
 
+def _render_banner(output_func: OutputFunc) -> None:
+    output_func("========================================")
+    output_func("            SkyhighMonitor")
+    output_func("========================================")
+
+
+def run_exchange_csv_export(
+    args: argparse.Namespace,
+    output_func: OutputFunc = print,
+    execute_query: MenuQueryExecutor | None = None,
+    now: datetime | None = None,
+    export_dir: Path | None = None,
+) -> int:
+    current_time = now or datetime.now()
+    csv_export_dir = export_dir or Path.cwd()
+    query_executor = execute_query or (
+        lambda mode, start_time: execute_menu_query(args, mode, start_time)
+    )
+
+    _render_banner(output_func)
+    start_time = build_start_time_for_days(1, now=current_time)
+    incidents = query_executor("exchange", start_time)
+    output_path = csv_export_dir / current_time.strftime("exchange_incidents_%Y%m%d.csv")
+    export_incidents_csv(incidents, output_path)
+
+    output_func(f"Janela consultada desde: {start_time}")
+    output_func(f"Total de incidentes exportados: {len(incidents)}")
+    output_func(f"CSV exportado em: {output_path}")
+    return 0
+
+
 def run_interactive_menu(
     args: argparse.Namespace | None = None,
     input_func: InputFunc = input,
@@ -233,9 +279,7 @@ def run_interactive_menu(
     )
     csv_export_dir = export_dir or Path.cwd()
 
-    output_func("========================================")
-    output_func("            SkyhighMonitor")
-    output_func("========================================")
+    _render_banner(output_func)
 
     while True:
         output_func("")
@@ -254,14 +298,13 @@ def run_interactive_menu(
             continue
 
         if choice == "3":
-            current_time = now or datetime.now()
-            start_time = build_start_time_for_days(1, now=current_time)
-            incidents = query_executor("exchange", start_time)
-            output_path = csv_export_dir / current_time.strftime("exchange_incidents_%Y%m%d.csv")
-            export_incidents_csv(incidents, output_path)
-            output_func(f"Janela consultada desde: {start_time}")
-            output_func(f"Total de incidentes exportados: {len(incidents)}")
-            output_func(f"CSV exportado em: {output_path}")
+            run_exchange_csv_export(
+                args=runtime_args,
+                output_func=output_func,
+                execute_query=query_executor,
+                now=now,
+                export_dir=csv_export_dir,
+            )
             continue
 
         days = _prompt_days(input_func, output_func)
@@ -298,11 +341,23 @@ def run_standard_cli(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    load_dotenv()
     cli_args = list(sys.argv[1:] if argv is None else argv)
+    env_file = ".env"
+    for index, token in enumerate(cli_args):
+        if token == "--env-file" and index + 1 < len(cli_args):
+            env_file = cli_args[index + 1]
+            break
+        if token.startswith("--env-file="):
+            env_file = token.split("=", 1)[1]
+            break
+
+    load_dotenv(env_file)
     args = parse_args(cli_args)
 
     try:
+        if getattr(args, "export_exchange_csv", False):
+            export_dir = Path(args.export_dir) if args.export_dir else Path.cwd()
+            return run_exchange_csv_export(args=args, export_dir=export_dir)
         if getattr(args, "menu", False) or not cli_args:
             return run_interactive_menu(args=args)
         return run_standard_cli(args)

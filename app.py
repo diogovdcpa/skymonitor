@@ -34,6 +34,7 @@ parse_base_candidates = _api.parse_base_candidates
 query_incidents_page = _api.query_incidents_page
 RuntimeConfig = _config.RuntimeConfig
 run_interactive_menu = _cli.run_interactive_menu
+run_exchange_csv_export = _cli.run_exchange_csv_export
 run_standard_cli = _cli.run_standard_cli
 try_resolve_connection = _api.try_resolve_connection
 export_incidents_csv = _cli.export_incidents_csv
@@ -75,6 +76,7 @@ __all__ = [
     "parse_base_candidates",
     "query_incidents_page",
     "RuntimeConfig",
+    "run_exchange_csv_export",
     "run_interactive_menu",
     "run_standard_cli",
     "try_resolve_connection",
