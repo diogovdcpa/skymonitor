@@ -36,6 +36,7 @@ RuntimeConfig = _config.RuntimeConfig
 run_interactive_menu = _cli.run_interactive_menu
 run_standard_cli = _cli.run_standard_cli
 try_resolve_connection = _api.try_resolve_connection
+export_incidents_csv = _cli.export_incidents_csv
 _format_incident_line = _cli._format_incident_line
 _prompt_days = _cli._prompt_days
 export_incidents_csv = _cli.export_incidents_csv

@@ -22,6 +22,7 @@ class TokenPayload(TypedDict, total=False):
 class IncidentInformation(TypedDict, total=False):
     contentItemName: str
     policyName: str
+    internalCollaborators: list[str]
 
 
 class IncidentRecord(TypedDict, total=False):

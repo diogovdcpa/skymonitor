@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -201,7 +202,6 @@ def test_run_menu_exports_exchange_csv_for_one_day(
         }
     ]
 
-
 def test_run_menu_reprompts_for_invalid_days() -> None:
     captured: list[tuple[str, str]] = []
     outputs: list[str] = []
@@ -339,6 +339,30 @@ def test_execute_menu_query_filters_exchange(monkeypatch: pytest.MonkeyPatch) ->
             "status": "new",
             "serviceNames": ["Microsoft Exchange Online"],
             "instanceName": "Exchange Online",
+        }
+    ]
+def test_export_incidents_csv_writes_expected_columns(tmp_path: Path) -> None:
+    output_path = tmp_path / "exchange_incidents_20260309.csv"
+
+    app.export_incidents_csv(
+        [
+            {
+                "incidentId": "2510186",
+                "actorId": "user@example.com",
+                "information": {"internalCollaborators": ["dest1@example.com", "dest2@example.com"]},
+            }
+        ],
+        output_path,
+    )
+
+    with output_path.open(newline="", encoding="utf-8") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    assert rows == [
+        {
+            "incident_id": "2510186",
+            "from": "user@example.com",
+            "to": "dest1@example.com;dest2@example.com",
         }
     ]
 
